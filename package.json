@@ -1,0 +1,25 @@
+{
+  "name": "2048-term",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/core": "^7.6.2",
+    "@babel/plugin-proposal-object-rest-spread": "^7.6.2",
+    "@babel/preset-env": "^7.6.2",
+    "@babel/preset-react": "^7.0.0",
+    "@babel/register": "^7.6.2",
+    "blessed": "^0.1.81",
+    "lodash": "^4.17.15",
+    "neo-blessed": "^0.2.0",
+    "react": "^16.10.0",
+    "react-blessed": "^0.6.1"
+  }
+}
