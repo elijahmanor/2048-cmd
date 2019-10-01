@@ -222,15 +222,17 @@ function Grid({ cellWidth, cellHeight, rows }) {
       top={0}
       width={cellWidth * 4 + 2}
       height={cellHeight * 4 + 2}>
-      {flatten(rows.map( (row, rowIndex) => row.map( (cell, cellIndex) =>
-        <box top={rowIndex * cellHeight}
+      {flatten(rows.map( (row, rowIndex) => row.map( (cell, cellIndex) => {
+        // console.log(parseInt((cellWidth / 2) - (cell.toString().length / 2) - 1, 10));
+        return <box top={rowIndex * cellHeight}
           left={cellIndex * cellWidth}
           width={cellWidth}
           height={cellHeight}
           border={{type: 'line'}}
           align="center"
           valign="middle"
-          style={colors[cell].style(cell)}>
+          style={colors[cell].style(cell)}
+          key={`${rowIndex}:${cellIndex}`}>
           <box top={cellHeight / 2 - 1}
             left={parseInt((cellWidth / 2) - (cell.toString().length / 2) - 1, 10)}
             height={1}
@@ -238,7 +240,7 @@ function Grid({ cellWidth, cellHeight, rows }) {
              { cell !== 0 ? colors[cell].text(cell) : "" }
            </box>
          </box>
-      )))}
+      })))}
     </box>
   );
 }
