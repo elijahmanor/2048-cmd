@@ -1,9 +1,12 @@
 import React, {Fragment, Component} from 'react';
-import {flatten, random, sample, times, constant, concat} from 'lodash';
+import {flatten, random, sample, times, constant, concat, zip, unzip} from 'lodash';
 import blessed from 'neo-blessed';
 import {createBlessedRenderer} from 'react-blessed';
+import chalk from 'chalk';
 
 const get2or4 = () => sample(concat(times(5, constant(2)), times(5, constant(4))));
+
+let score = 0;
 
 const resetRows = () => {
   const rows = [
@@ -21,9 +24,106 @@ const resetRows = () => {
   }
   rows[randRow][randCol] = get2or4();
   return rows;
-}
+};
 
-const choices = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
+const colors = {
+  0: {
+    text: () => {},
+    style: () => ({ bg: '' })
+  },
+  2: {
+    text: val => chalk.bgWhite.black(val),
+    style: val => ({ bg: 'white'})
+  },
+  4: {
+    text: val => chalk.bgGreen.black(val),
+    style: val => ({ bg: 'green'})
+  },
+  8: {
+    text: val => chalk.bgYellow.black(val),
+    style: val => ({ bg: 'yellow'})
+  },
+  16: {
+    text: val => chalk.bgBlue.white(val),
+    style: val => ({ bg: 'blue'})
+  },
+  32: {
+    text: val => chalk.bgMagenta.white(val),
+    style: val => ({ bg: 'magenta'})
+  },
+  64: {
+    text: val => chalk.bgCyan.black(val),
+    style: val => ({ bg: 'cyan'})
+  },
+  128: {
+    text: val => chalk.bgRed.white(val),
+    style: val => ({ bg: 'red'})
+  },
+  256: {
+    text: val => chalk.bgRed.white(val),
+    style: val => ({ bg: 'white'})
+  },
+  512: {
+    text: val => chalk.bgGreen.white(val),
+    style: val => ({ bg: 'white'})
+  },
+  1024: {
+    text: val => chalk.bgYellow.white(val),
+    style: val => ({ bg: 'white'})
+  },
+  2048: {
+    text: val => chalk.bgBlue.white(val),
+    style: val => ({ bg: 'white'})
+  }
+};
+
+const moveCells = (cells, direction) => {
+  cells = cells.filter( c => c );
+  if (cells.length < 4) {
+    const newCells = Array.from({ length: 4 - cells.length }, () => 0);
+    if (direction === "left") {
+      cells = [...cells, ...newCells];
+    } else if (direction === "right") {
+      cells = [...newCells, ...cells];
+    }
+  }
+  return cells;
+};
+
+const mergeCells = (cells, direction) => {
+  if (direction === "right") {
+    for (let i = cells.length - 1; i > 0; --i) {
+      if (cells[i] === cells[i-1]) {
+        cells[i] = cells[i] + cells[i-1];
+        score += cells[i];
+        cells[i-1] = 0;
+        cells = moveCells(cells, direction);
+      }
+    }
+  } else if (direction === "left") {
+    for (let i = 0; i < cells.length - 1; ++i) {
+      if (cells[i] === cells[i+1]) {
+        cells[i] = cells[i] + cells[i+1];
+        score += cells[i];
+        cells[i+1] = 0;
+        cells = moveCells(cells, direction);
+      }
+    }
+  }
+
+  return cells;
+};
+
+const addCell = rows => {
+  let randRow = random(3);
+  let randCol = random(3);
+  while (rows[randRow][randCol] !== 0) {
+    randRow = random(3);
+    randCol = random(3);
+  }
+  rows[randRow][randCol] = get2or4();
+  return rows;
+};
 
 class App extends Component {
   constructor(props) {
@@ -43,76 +143,96 @@ class App extends Component {
       case 'left': this.goLeft(); break;
       case 'right': this.goRight(); break;
       case 'up': this.goUp(); break;
-      case 'down': this.goDOwn(); break;
+      case 'down': this.goDown(); break;
       default: break;
     }
   }
   goLeft() {
-    console.log("goLeft");
-  }
-  goRight() {
-    // const rows = [
-    //   [0, 0, 0, 0],
-    //   [0, 2, 0, 2],
-    //   [0, 0, 4, 0],
-    //   [0, 0, 0, 0]
-    // ];
-    // let rows = this.state.rows;
-    // rows = rows.map( row => {
-    //   let changed = true;
-    //   while (changed === true) {
-    //     changed = false;
-    //     for (let i = row.length - 1; i >= 0; --i) {
-    //       if (row[i] === 0 && row[i-1] !== 0) {
-    //         row[i] = row[i-1];
-    //         row[i-1] = 0;
-    //         changed = true;
-    //       }
-    //     }
-    //   }
-    //   return row;
-    // } );
-    // this.setState({ rows });
-    /*
-     */
     let rows = this.state.rows;
     rows = rows.map( row => {
-      row = row.filter( c => c );
-      if (row.length < 4) {
-        row = Array.from({ length: 4 - row.length }, () => 0 ).concat(row);
-      }
+      row = moveCells(row, "left");
+      row = mergeCells(row, "left");
       return row;
-    } );
+    });
+    rows = addCell(rows);
+    this.setState({ rows });
+  }
+  goRight() {
+    let rows = this.state.rows;
+    rows = rows.map(row => {
+      row = moveCells(row, "right");
+      row = mergeCells(row, "right");
+      return row;
+    });
+    rows = addCell(rows);
     this.setState({ rows });
   }
   goUp() {
-    console.log('goUp');
+    let rows = this.state.rows;
+    rows = zip(...rows);
+    rows = rows.map(row => {
+      row = moveCells(row, "left");
+      row = mergeCells(row, "left");
+      return row;
+    });
+    rows = zip(...rows);
+    rows = addCell(rows);
+    this.setState({ rows });
   }
   goDown() {
-    console.log('goDown');
+    let rows = this.state.rows;
+    rows = zip(...rows);
+    rows = rows.map(row => {
+      row = moveCells(row, "right");
+      row = mergeCells(row, "right");
+      return row;
+    });
+    rows = zip(...rows);
+    rows = addCell(rows);
+    this.setState({ rows });
   }
   render() {
     const { screen } = this.props;
     const cellWidth = Math.floor(screen.width / 5);
     const cellHeight = Math.floor(screen.height / 5);
     const { rows } = this.state;
-    return <Grid cellWidth={cellWidth} cellHeight={cellHeight} rows={rows} />;
+    return (
+      <Fragment>
+        <Grid cellWidth={cellWidth} cellHeight={cellHeight} rows={rows} />
+        <box top={cellHeight * 4 + 2} left={1}>Score: </box>
+        <box top={cellHeight * 4 + 2} left={10}>{ score }</box>
+      </Fragment>
+    );
   }
 }
 
 function Grid({ cellWidth, cellHeight, rows }) {
-  return flatten(rows.map( (row, rowIndex) => row.map( (cell, cellIndex) =>
-    <box top={ rowIndex * cellHeight }
-       left={ cellIndex * cellWidth }
-       width={ cellWidth }
-       height={ cellHeight }
-       border={{type: 'line'}}
-       align="center"
-       valign="middle"
-       style={{border: {fg: 'blue'}}}>
-       { cell !== 0 ? cell : "" }
+  return (
+    <box
+      border={{type: 'line'}}
+      style={{bg: 'cyan', border: {fg: 'blue'}}}
+      top={0}
+      width={cellWidth * 4 + 2}
+      height={cellHeight * 4 + 2}>
+      {flatten(rows.map( (row, rowIndex) => row.map( (cell, cellIndex) =>
+        <box top={rowIndex * cellHeight}
+          left={cellIndex * cellWidth}
+          width={cellWidth}
+          height={cellHeight}
+          border={{type: 'line'}}
+          align="center"
+          valign="middle"
+          style={colors[cell].style(cell)}>
+          <box top={cellHeight / 2 - 1}
+            left={parseInt((cellWidth / 2) - (cell.toString().length / 2) - 1, 10)}
+            height={1}
+            width={cell.toString().length}>
+             { cell !== 0 ? colors[cell].text(cell) : "" }
+           </box>
+         </box>
+      )))}
     </box>
-  ) ) );
+  );
 }
 
 const screen = blessed.screen({
