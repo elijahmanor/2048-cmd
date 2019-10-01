@@ -1,5 +1,5 @@
 import React, {Fragment, Component} from 'react';
-import {isEqual, flatten, random, sample, times, constant, concat, zip, unzip} from 'lodash';
+import {padStart, cloneDeep, isEqual, flatten, random, sample, times, constant, concat, zip, unzip} from 'lodash';
 import blessed from 'neo-blessed';
 import {createBlessedRenderer} from 'react-blessed';
 import chalk from 'chalk';
@@ -7,6 +7,34 @@ import chalk from 'chalk';
 const get2or4 = () => sample(concat(times(5, constant(2)), times(5, constant(4))));
 
 let score = 0;
+
+const hasAvailableSpaces = rows => flatten(rows).some(c => c === 0);
+
+const rowHasMoves = row => {
+  let hasMoves = false;
+  let cells = row.filter(c => c);
+  if (cells.length < 4) {
+    const newCells = Array.from({ length: 4 - cells.length }, () => 0);
+    cells = [...newCells, ...cells];
+  }
+  for (let i = 0; i < cells.length; ++i) {
+    if (cells[i] === cells[i+1]) {
+      hasMoves = true;
+      break;
+    }
+  }
+  return hasMoves;
+};
+
+const hasAvailableMoves = rows => {
+  let rs = cloneDeep(rows);
+  let hasMoves = rs.some(row => rowHasMoves(row));
+  if (!hasMoves) {
+    rs = zip(...rs);
+    hasMoves = rs.some(row => rowHasMoves(row));
+  }
+  return hasMoves;
+};
 
 const resetRows = () => {
   const rows = [
@@ -129,7 +157,7 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.handleCommand = this.handleCommand.bind(this);
-    this.state = { rows: resetRows() };
+    this.state = { rows: resetRows(), availableMoves: true };
   }
   componentDidMount() {
     screen.key(['left', 'right', 'up', 'down'], (ch, key) => {
@@ -154,7 +182,7 @@ class App extends Component {
       row = mergeCells(row, "left");
       return row;
     });
-    if (!isEqual(rows, this.state.rows)) {
+    if (!isEqual(rows, this.state.rows) && hasAvailableSpaces(rows)) {
       rows = addCell(rows);
     }
     this.setState({ rows });
@@ -166,7 +194,7 @@ class App extends Component {
       row = mergeCells(row, "right");
       return row;
     });
-    if (!isEqual(rows, this.state.rows)) {
+    if (!isEqual(rows, this.state.rows) && hasAvailableSpaces(rows)) {
       rows = addCell(rows);
     }
     this.setState({ rows });
@@ -180,7 +208,7 @@ class App extends Component {
       return row;
     });
     rows = zip(...rows);
-    if (!isEqual(rows, this.state.rows)) {
+    if (!isEqual(rows, this.state.rows) && hasAvailableSpaces(rows)) {
       rows = addCell(rows);
     }
     this.setState({ rows });
@@ -194,7 +222,7 @@ class App extends Component {
       return row;
     });
     rows = zip(...rows);
-    if (!isEqual(rows, this.state.rows)) {
+    if (!isEqual(rows, this.state.rows) && hasAvailableSpaces(rows)) {
       rows = addCell(rows);
     }
     this.setState({ rows });
@@ -204,11 +232,20 @@ class App extends Component {
     const cellWidth = Math.floor(screen.width / 5);
     const cellHeight = Math.floor(screen.height / 5);
     const { rows } = this.state;
+    const isGameOver = !hasAvailableMoves(rows) && !hasAvailableSpaces(rows);
+    const highScore = 12345;
     return (
       <Fragment>
         <Grid cellWidth={cellWidth} cellHeight={cellHeight} rows={rows} />
-        <box top={cellHeight * 4 + 2} left={1}>Score: </box>
-        <box top={cellHeight * 4 + 2} left={10}>{ score }</box>
+        <box top={cellHeight * 4 + 2} left={0}>Score:</box>
+        <box top={cellHeight * 4 + 2} left={10}>{ padStart(score, 5, "0") }</box>
+        <box top={cellHeight * 4 + 2} left={cellWidth * 2 - 5}>
+          { isGameOver && chalk.red("Game Over") }
+        </box>
+        <box top={cellHeight * 4 + 2} left={cellWidth * 4 - 18}>High Score:</box>
+        <box top={cellHeight * 4 + 2} left={cellWidth * 4 - highScore.toString().length + 2}>
+          { padStart(highScore, 5, "0") }
+        </box>
       </Fragment>
     );
   }
@@ -223,7 +260,6 @@ function Grid({ cellWidth, cellHeight, rows }) {
       width={cellWidth * 4 + 2}
       height={cellHeight * 4 + 2}>
       {flatten(rows.map( (row, rowIndex) => row.map( (cell, cellIndex) => {
-        // console.log(parseInt((cellWidth / 2) - (cell.toString().length / 2) - 1, 10));
         return <box top={rowIndex * cellHeight}
           left={cellIndex * cellWidth}
           width={cellWidth}
