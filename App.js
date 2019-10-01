@@ -1,5 +1,5 @@
 import React, {Fragment, Component} from 'react';
-import {flatten, random, sample, times, constant, concat, zip, unzip} from 'lodash';
+import {isEqual, flatten, random, sample, times, constant, concat, zip, unzip} from 'lodash';
 import blessed from 'neo-blessed';
 import {createBlessedRenderer} from 'react-blessed';
 import chalk from 'chalk';
@@ -148,27 +148,31 @@ class App extends Component {
     }
   }
   goLeft() {
-    let rows = this.state.rows;
+    let rows = [...this.state.rows];
     rows = rows.map( row => {
       row = moveCells(row, "left");
       row = mergeCells(row, "left");
       return row;
     });
-    rows = addCell(rows);
+    if (!isEqual(rows, this.state.rows)) {
+      rows = addCell(rows);
+    }
     this.setState({ rows });
   }
   goRight() {
-    let rows = this.state.rows;
+    let rows = [...this.state.rows];
     rows = rows.map(row => {
       row = moveCells(row, "right");
       row = mergeCells(row, "right");
       return row;
     });
-    rows = addCell(rows);
+    if (!isEqual(rows, this.state.rows)) {
+      rows = addCell(rows);
+    }
     this.setState({ rows });
   }
   goUp() {
-    let rows = this.state.rows;
+    let rows = [...this.state.rows];
     rows = zip(...rows);
     rows = rows.map(row => {
       row = moveCells(row, "left");
@@ -176,11 +180,13 @@ class App extends Component {
       return row;
     });
     rows = zip(...rows);
-    rows = addCell(rows);
+    if (!isEqual(rows, this.state.rows)) {
+      rows = addCell(rows);
+    }
     this.setState({ rows });
   }
   goDown() {
-    let rows = this.state.rows;
+    let rows = [...this.state.rows];
     rows = zip(...rows);
     rows = rows.map(row => {
       row = moveCells(row, "right");
@@ -188,7 +194,9 @@ class App extends Component {
       return row;
     });
     rows = zip(...rows);
-    rows = addCell(rows);
+    if (!isEqual(rows, this.state.rows)) {
+      rows = addCell(rows);
+    }
     this.setState({ rows });
   }
   render() {
