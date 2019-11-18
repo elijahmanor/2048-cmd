@@ -3,10 +3,25 @@ import {padStart, cloneDeep, isEqual, flatten, random, sample, times, constant, 
 import blessed from 'neo-blessed';
 import {createBlessedRenderer} from 'react-blessed';
 import chalk from 'chalk';
+import fs from "fs";
 
 const get2or4 = () => sample(concat(times(5, constant(2)), times(5, constant(4))));
 
 let score = 0;
+
+const getScore = () => {
+  let score = "0";
+  try {
+    score = fs.readFileSync('score.txt');
+  } catch(e) {}
+  return parseInt(score, 10);
+}
+
+let highScore = getScore();
+
+const saveScore = value => {
+  fs.writeFileSync('score.txt', value.toString());
+}
 
 const hasAvailableSpaces = rows => flatten(rows).some(c => c === 0);
 
@@ -46,7 +61,8 @@ const resetRows = () => {
   rows[random(3)][random(3)] = get2or4();
   let randRow = random(3);
   let randCol = random(3);
-  while (rows[randRow][randCol] === 2) {
+  while (rows[randRow][randCol] === 2 ||
+    rows[randRow][randCol] === 4) {
     randRow = random(3);
     randCol = random(3);
   }
@@ -137,6 +153,11 @@ const mergeCells = (cells, direction) => {
         cells = moveCells(cells, direction);
       }
     }
+  }
+
+  if (score > highScore) {
+    saveScore(score);
+    highScore = score;
   }
 
   return cells;
@@ -233,7 +254,6 @@ class App extends Component {
     const cellHeight = Math.floor(screen.height / 5);
     const { rows } = this.state;
     const isGameOver = !hasAvailableMoves(rows) && !hasAvailableSpaces(rows);
-    const highScore = 12345;
     return (
       <Fragment>
         <Grid cellWidth={cellWidth} cellHeight={cellHeight} rows={rows} />
@@ -243,7 +263,7 @@ class App extends Component {
           { isGameOver && chalk.red("Game Over") }
         </box>
         <box top={cellHeight * 4 + 2} left={cellWidth * 4 - 18}>High Score:</box>
-        <box top={cellHeight * 4 + 2} left={cellWidth * 4 - highScore.toString().length + 2}>
+        <box top={cellHeight * 4 + 2} left={cellWidth * 4 - highScore.toString().length + 1}>
           { padStart(highScore, 5, "0") }
         </box>
       </Fragment>
@@ -284,7 +304,7 @@ function Grid({ cellWidth, cellHeight, rows }) {
 const screen = blessed.screen({
   autoPadding: true,
   smartCSR: true,
-  title: 'react-blessed hello world'
+  title: 'react-blessed 2048'
 });
 
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
